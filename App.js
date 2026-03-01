@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +7,8 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import LaundryScreen from './screens/LaundryScreen';
 import AttendanceScreen from './screens/AttendanceScreen';
 import SpendScreen from './screens/SpendScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import { NotificationService } from './services/NotificationService';
 
 const Stack = createStackNavigator();
 
@@ -30,14 +32,19 @@ function HomeScreen({ navigation }) {
           <Text style={styles.buttonText}>Attendance</Text>
         </TouchableOpacity>
 
-        <View style={styles.buttonSection}>
-          <TouchableOpacity
-            style={styles.customButton}
-            onPress={() => navigation.navigate('Spending')}
-          >
-            <Text style={styles.buttonText}>Spending</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.customButton}
+          onPress={() => navigation.navigate('Spending')}
+        >
+          <Text style={styles.buttonText}>Spending</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.customButton}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Text style={styles.buttonText}>Settings</Text>
+        </TouchableOpacity>
       </View>
       <StatusBar style="auto" />
     </View>
@@ -45,8 +52,35 @@ function HomeScreen({ navigation }) {
 }
 
 export default function App() {
+  const navigationRef = useRef();
+
+  useEffect(() => {
+    // Initialize notification service
+    initializeNotifications();
+
+    return () => {
+      // Cleanup on unmount
+      NotificationService.removeListeners();
+    };
+  }, []);
+
+  const initializeNotifications = async () => {
+    // Initialize notification service
+    await NotificationService.initialize();
+
+    // Set up listeners for notification taps
+    NotificationService.setupListeners((screen, data) => {
+      // Navigate to the specified screen when notification is tapped
+      if (navigationRef.current) {
+        navigationRef.current.navigate(screen);
+      }
+    });
+
+    console.log('✅ App notifications ready');
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
@@ -78,6 +112,11 @@ export default function App() {
           name="Spending"
           component={SpendScreen}
           options={{ title: 'Spending' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Settings' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
